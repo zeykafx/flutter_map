@@ -1,3 +1,6 @@
+## 0.10.1
+- call super in _TileLayerOptions.initState, fix Travis CI
+
 ## 0.10.0
 - add package:meta dependency, set cached_network_image to 2.0.0
 - Support retina mode (#585)

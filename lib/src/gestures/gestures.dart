@@ -504,6 +504,10 @@ abstract class MapGestureMixin extends State<FlutterMap>
   void handleTap(TapPosition position) {
     closeFlingAnimationController(MapEventSource.tap);
     closeDoubleTapController(MapEventSource.tap);
+    // TODO: This is for fast_markers - don't know if it's good
+    if(mapState.onTapRaw != null){
+      mapState.onTapRaw(position);
+    }
 
     final latlng = _offsetToCrs(position.relative);
     if (options.onTap != null) {

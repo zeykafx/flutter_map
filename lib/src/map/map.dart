@@ -80,6 +80,8 @@ class MapState {
   final ValueChanged<double> onRotationChanged;
   final StreamController<Null> _onMoveSink;
   final StreamSink<MapEvent> _mapEventSink;
+  // TODO: This is for fast_markers - don't know if it's good
+  RawTapCallback onTapRaw;
 
   double _zoom;
   double _rotation;

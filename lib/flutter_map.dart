@@ -25,6 +25,7 @@ export 'package:flutter_map/src/layer/group_layer.dart';
 export 'package:flutter_map/src/layer/layer.dart';
 export 'package:flutter_map/src/layer/marker_layer.dart';
 export 'package:flutter_map/src/layer/overlay_image_layer.dart';
+export 'package:flutter_map/src/layer/overlay_widget_layer.dart';
 export 'package:flutter_map/src/layer/polygon_layer.dart';
 export 'package:flutter_map/src/layer/polyline_layer.dart';
 export 'package:flutter_map/src/layer/tile_builder/tile_builder.dart';

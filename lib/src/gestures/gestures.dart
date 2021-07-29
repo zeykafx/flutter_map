@@ -509,7 +509,7 @@ abstract class MapGestureMixin extends State<FlutterMap>
     // TODO: This is for fast_markers - don't know if it's good
     var _callOnTap = true;
     if(mapState.onTapRaw != null){
-      _callOnTap = mapState.onTapRaw(position);
+      _callOnTap = mapState.onTapRaw!(position);
     }
 
     final latlng = _offsetToCrs(position.relative!);

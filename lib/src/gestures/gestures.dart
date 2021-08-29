@@ -2,12 +2,13 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map/src/gestures/interactive_flag.dart';
 import 'package:flutter_map/src/gestures/latlng_tween.dart';
 import 'package:flutter_map/src/map/map.dart';
-import 'package:latlong/latlong.dart';
-import 'package:positioned_tap_detector/positioned_tap_detector.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:positioned_tap_detector_2/positioned_tap_detector_2.dart';
 
 abstract class MapGestureMixin extends State<FlutterMap>
     with TickerProviderStateMixin {
@@ -30,25 +31,25 @@ abstract class MapGestureMixin extends State<FlutterMap>
 
   // Helps to reset ScaleUpdateDetails.scale back to 1.0 when a multi finger
   // gesture wins
-  double _scaleCorrector;
+  late double _scaleCorrector;
 
-  double _lastRotation;
-  double _lastScale;
-  Offset _lastFocalLocal;
+  late double _lastRotation;
+  late double _lastScale;
+  late Offset _lastFocalLocal;
 
-  LatLng _mapCenterStart;
-  double _mapZoomStart;
-  Offset _focalStartLocal;
+  late LatLng _mapCenterStart;
+  late double _mapZoomStart;
+  late Offset _focalStartLocal;
 
-  AnimationController _flingController;
-  Animation<Offset> _flingAnimation;
+  late final AnimationController _flingController;
+  late Animation<Offset> _flingAnimation;
 
-  AnimationController _doubleTapController;
-  Animation _doubleTapZoomAnimation;
-  Animation _doubleTapCenterAnimation;
+  late final AnimationController _doubleTapController;
+  late Animation _doubleTapZoomAnimation;
+  late Animation _doubleTapCenterAnimation;
 
   int _tapUpCounter = 0;
-  Timer _doubleTapHoldMaxDelay;
+  Timer? _doubleTapHoldMaxDelay;
 
   @override
   FlutterMap get widget;
@@ -161,7 +162,8 @@ abstract class MapGestureMixin extends State<FlutterMap>
     }
   }
 
-  int _getMultiFingerGestureFlags({int gestureWinner, MapOptions mapOptions}) {
+  int _getMultiFingerGestureFlags(
+      {int? gestureWinner, MapOptions? mapOptions}) {
     gestureWinner ??= _gestureWinner;
     mapOptions ??= options;
 
@@ -479,9 +481,10 @@ abstract class MapGestureMixin extends State<FlutterMap>
     }
 
     var direction = details.velocity.pixelsPerSecond / magnitude;
-    var distance =
-        (Offset.zero & Size(mapState.originalSize.x, mapState.originalSize.y))
-            .shortestSide;
+    var distance = (Offset.zero &
+            Size(mapState.originalSize!.x as double,
+                mapState.originalSize!.y as double))
+        .shortestSide;
 
     var _flingOffset = _focalStartLocal - _lastFocalLocal;
     _flingAnimation = Tween<Offset>(
@@ -491,17 +494,23 @@ abstract class MapGestureMixin extends State<FlutterMap>
 
     _flingController
       ..value = 0.0
-      ..fling(velocity: magnitude / 1000.0);
+      ..fling(
+          velocity: magnitude / 1000.0,
+          springDescription: SpringDescription.withDampingRatio(
+            mass: 1.0,
+            stiffness: 1000.0,
+            ratio: 5.0,
+          ));
   }
 
   void handleTap(TapPosition position) {
     closeFlingAnimationController(MapEventSource.tap);
     closeDoubleTapController(MapEventSource.tap);
 
-    final latlng = _offsetToCrs(position.relative);
+    final latlng = _offsetToCrs(position.relative!);
     if (options.onTap != null) {
       // emit the event
-      options.onTap(latlng);
+      options.onTap!(latlng);
     }
 
     mapState.emitMapEvent(
@@ -520,10 +529,10 @@ abstract class MapGestureMixin extends State<FlutterMap>
     closeFlingAnimationController(MapEventSource.longPress);
     closeDoubleTapController(MapEventSource.longPress);
 
-    final latlng = _offsetToCrs(position.relative);
+    final latlng = _offsetToCrs(position.relative!);
     if (options.onLongPress != null) {
       // emit the event
-      options.onLongPress(latlng);
+      options.onLongPress!(latlng);
     }
 
     mapState.emitMapEvent(
@@ -538,7 +547,7 @@ abstract class MapGestureMixin extends State<FlutterMap>
 
   LatLng _offsetToCrs(Offset offset) {
     final focalStartPt = mapState.project(mapState.center, mapState.zoom);
-    final point = (_offsetToPoint(offset) - (mapState.originalSize / 2.0))
+    final point = (_offsetToPoint(offset) - (mapState.originalSize! / 2.0))
         .rotate(mapState.rotationRad);
 
     var newCenterPt = focalStartPt + point;
@@ -557,10 +566,10 @@ abstract class MapGestureMixin extends State<FlutterMap>
 
     if (InteractiveFlag.hasFlag(
         options.interactiveFlags, InteractiveFlag.doubleTapZoom)) {
-      final centerPos = _pointToOffset(mapState.originalSize) / 2.0;
+      final centerPos = _pointToOffset(mapState.originalSize!) / 2.0;
       final newZoom = _getZoomForScale(mapState.zoom, 2.0);
       final focalDelta = _getDoubleTapFocalDelta(
-          centerPos, tapPosition.relative, newZoom - mapState.zoom);
+          centerPos, tapPosition.relative!, newZoom - mapState.zoom);
       final newCenter = _offsetToCrs(centerPos + focalDelta);
       _startDoubleTapAnimation(newZoom, newCenter);
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map_example/pages/network_tile_provider.dart';
 
 import './pages/animated_map_controller.dart';
 import './pages/circle.dart';
@@ -9,6 +10,7 @@ import './pages/live_location.dart';
 import './pages/many_markers.dart';
 import './pages/map_controller.dart';
 import './pages/marker_anchor.dart';
+import './pages/marker_rotate.dart';
 import './pages/moving_markers.dart';
 import './pages/offline_map.dart';
 import './pages/on_tap.dart';
@@ -18,7 +20,9 @@ import './pages/plugin_scalebar.dart';
 import './pages/plugin_zoombuttons.dart';
 import './pages/polyline.dart';
 import './pages/sliding_map.dart';
+import './pages/stateful_markers.dart';
 import './pages/tap_to_add.dart';
+import './pages/tile_builder_example.dart';
 import './pages/tile_loading_error_handle.dart';
 import './pages/widgets.dart';
 import './pages/wms_tile_layer.dart';
@@ -37,6 +41,7 @@ class MyApp extends StatelessWidget {
       ),
       home: HomePage(),
       routes: <String, WidgetBuilder>{
+        NetworkTileProviderPage.route: (context) => NetworkTileProviderPage(),
         WidgetsPage.route: (context) => WidgetsPage(),
         TapToAddPage.route: (context) => TapToAddPage(),
         EsriPage.route: (context) => EsriPage(),
@@ -50,6 +55,7 @@ class MyApp extends StatelessWidget {
         PluginZoomButtons.route: (context) => PluginZoomButtons(),
         OfflineMapPage.route: (context) => OfflineMapPage(),
         OnTapPage.route: (context) => OnTapPage(),
+        MarkerRotatePage.route: (context) => MarkerRotatePage(),
         MovingMarkersPage.route: (context) => MovingMarkersPage(),
         CirclePage.route: (context) => CirclePage(),
         OverlayImagePage.route: (context) => OverlayImagePage(),
@@ -58,8 +64,10 @@ class MyApp extends StatelessWidget {
         CustomCrsPage.route: (context) => CustomCrsPage(),
         LiveLocationPage.route: (context) => LiveLocationPage(),
         TileLoadingErrorHandle.route: (context) => TileLoadingErrorHandle(),
+        TileBuilderPage.route: (context) => TileBuilderPage(),
         InteractiveTestPage.route: (context) => InteractiveTestPage(),
         ManyMarkersPage.route: (context) => ManyMarkersPage(),
+        StatefulMarkersPage.route: (context) => StatefulMarkersPage(),
       },
     );
   }

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/plugin_api.dart';
-import 'package:latlong/latlong.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../pages/zoombuttons_plugin_option.dart';
 import '../widgets/drawer.dart';
@@ -37,16 +37,6 @@ class WidgetsPage extends StatelessWidget {
                     alignment: Alignment.bottomLeft,
                   )
                 ],
-                children: <Widget>[
-                  TileLayerWidget(
-                    options: TileLayerOptions(
-                      urlTemplate:
-                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      subdomains: ['a', 'b', 'c'],
-                    ),
-                  ),
-                  MovingWithoutRefreshAllMapMarkers(),
-                ],
                 nonRotatedChildren: <Widget>[
                   Text(
                     'Plugin is just Text widget',
@@ -56,6 +46,16 @@ class WidgetsPage extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         backgroundColor: Colors.yellow),
                   )
+                ],
+                children: <Widget>[
+                  TileLayerWidget(
+                    options: TileLayerOptions(
+                      urlTemplate:
+                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      subdomains: ['a', 'b', 'c'],
+                    ),
+                  ),
+                  MovingWithoutRefreshAllMapMarkers(),
                 ],
               ),
             ),
@@ -74,8 +74,8 @@ class MovingWithoutRefreshAllMapMarkers extends StatefulWidget {
 
 class _MovingWithoutRefreshAllMapMarkersState
     extends State<MovingWithoutRefreshAllMapMarkers> {
-  Marker _marker;
-  Timer _timer;
+  Marker? _marker;
+  Timer? _timer;
   int _markerIndex = 0;
 
   @override
@@ -99,7 +99,7 @@ class _MovingWithoutRefreshAllMapMarkersState
   @override
   Widget build(BuildContext context) {
     return MarkerLayerWidget(
-      options: MarkerLayerOptions(markers: <Marker>[_marker]),
+      options: MarkerLayerOptions(markers: [_marker!]),
     );
   }
 }

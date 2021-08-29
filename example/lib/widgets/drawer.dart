@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map_example/pages/marker_rotate.dart';
+import 'package:flutter_map_example/pages/network_tile_provider.dart';
 
 import '../pages/animated_map_controller.dart';
 import '../pages/circle.dart';
@@ -19,7 +21,9 @@ import '../pages/plugin_scalebar.dart';
 import '../pages/plugin_zoombuttons.dart';
 import '../pages/polyline.dart';
 import '../pages/sliding_map.dart';
+import '../pages/stateful_markers.dart';
 import '../pages/tap_to_add.dart';
+import '../pages/tile_builder_example.dart';
 import '../pages/tile_loading_error_handle.dart';
 import '../pages/widgets.dart';
 import '../pages/wms_tile_layer.dart';
@@ -54,6 +58,12 @@ Drawer buildDrawer(BuildContext context, String currentRoute) {
           context,
           const Text('OpenStreetMap'),
           HomePage.route,
+          currentRoute,
+        ),
+        _buildMenuItem(
+          context,
+          const Text('NetworkTileProvider'),
+          NetworkTileProviderPage.route,
           currentRoute,
         ),
         _buildMenuItem(
@@ -106,6 +116,12 @@ Drawer buildDrawer(BuildContext context, String currentRoute) {
         ),
         _buildMenuItem(
           context,
+          const Text('Marker Rotate'),
+          MarkerRotatePage.route,
+          currentRoute,
+        ),
+        _buildMenuItem(
+          context,
           const Text('Plugins'),
           PluginPage.route,
           currentRoute,
@@ -152,33 +168,35 @@ Drawer buildDrawer(BuildContext context, String currentRoute) {
           OverlayImagePage.route,
           currentRoute,
         ),
-        ListTile(
-          title: const Text('Sliding Map'),
-          selected: currentRoute == SlidingMapPage.route,
-          onTap: () =>
-              Navigator.pushReplacementNamed(context, SlidingMapPage.route),
+        _buildMenuItem(
+          context,
+          const Text('Sliding Map'),
+          SlidingMapPage.route,
+          currentRoute,
         ),
-        ListTile(
-          title: const Text('Widgets'),
-          selected: currentRoute == WidgetsPage.route,
-          onTap: () {
-            Navigator.pushReplacementNamed(context, WidgetsPage.route);
-          },
+        _buildMenuItem(
+          context,
+          const Text('Widgets'),
+          WidgetsPage.route,
+          currentRoute,
         ),
-        ListTile(
-          title: const Text('Live Location Update'),
-          selected: currentRoute == LiveLocationPage.route,
-          onTap: () {
-            Navigator.pushReplacementNamed(context, LiveLocationPage.route);
-          },
+        _buildMenuItem(
+          context,
+          const Text('Live Location Update'),
+          LiveLocationPage.route,
+          currentRoute,
         ),
-        ListTile(
-          title: const Text('Tile loading error handle'),
-          selected: currentRoute == TileLoadingErrorHandle.route,
-          onTap: () {
-            Navigator.pushReplacementNamed(
-                context, TileLoadingErrorHandle.route);
-          },
+        _buildMenuItem(
+          context,
+          const Text('Tile loading error handle'),
+          TileLoadingErrorHandle.route,
+          currentRoute,
+        ),
+        _buildMenuItem(
+          context,
+          const Text('Tile builder'),
+          TileBuilderPage.route,
+          currentRoute,
         ),
         _buildMenuItem(
           context,
@@ -192,6 +210,12 @@ Drawer buildDrawer(BuildContext context, String currentRoute) {
           onTap: () {
             Navigator.pushReplacementNamed(context, ManyMarkersPage.route);
           },
+        ),
+        _buildMenuItem(
+          context,
+          const Text('Stateful markers'),
+          StatefulMarkersPage.route,
+          currentRoute,
         )
       ],
     ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong/latlong.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../widgets/drawer.dart';
 
@@ -48,8 +48,8 @@ class _TileLoadingErrorHandleState extends State<TileLoadingErrorHandle> {
                       tileProvider: NonCachingNetworkTileProvider(),
                       errorTileCallback: (Tile tile, error) {
                         if (_needLoadingError) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            Scaffold.of(context).showSnackBar(SnackBar(
+                          WidgetsBinding.instance!.addPostFrameCallback((_) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                               duration: Duration(seconds: 1),
                               content: Text(
                                 error.toString(),

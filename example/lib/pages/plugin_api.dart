@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/plugin_api.dart';
-import 'package:latlong/latlong.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../widgets/drawer.dart';
 
@@ -46,9 +46,9 @@ class PluginPage extends StatelessWidget {
 class MyCustomPluginOptions extends LayerOptions {
   final String text;
   MyCustomPluginOptions({
-    Key key,
+    Key? key,
     this.text = '',
-    Stream<Null> rebuild,
+    Stream<Null>? rebuild,
   }) : super(key: key, rebuild: rebuild);
 }
 

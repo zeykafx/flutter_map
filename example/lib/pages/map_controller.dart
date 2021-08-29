@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong/latlong.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 
 import '../widgets/drawer.dart';
@@ -21,7 +21,7 @@ class MapControllerPageState extends State<MapControllerPage> {
   static LatLng paris = LatLng(48.8566, 2.3522);
   static LatLng dublin = LatLng(53.3498, -6.2603);
 
-  MapController mapController;
+  late final MapController mapController;
   double rotation = 0.0;
 
   @override
@@ -76,22 +76,22 @@ class MapControllerPageState extends State<MapControllerPage> {
               child: Row(
                 children: <Widget>[
                   MaterialButton(
-                    child: Text('London'),
                     onPressed: () {
                       mapController.move(london, 18.0);
                     },
+                    child: Text('London'),
                   ),
                   MaterialButton(
-                    child: Text('Paris'),
                     onPressed: () {
                       mapController.move(paris, 5.0);
                     },
+                    child: Text('Paris'),
                   ),
                   MaterialButton(
-                    child: Text('Dublin'),
                     onPressed: () {
                       mapController.move(dublin, 5.0);
                     },
+                    child: Text('Dublin'),
                   ),
                   CurrentLocation(mapController: mapController),
                 ],
@@ -102,7 +102,6 @@ class MapControllerPageState extends State<MapControllerPage> {
               child: Row(
                 children: <Widget>[
                   MaterialButton(
-                    child: Text('Fit Bounds'),
                     onPressed: () {
                       var bounds = LatLngBounds();
                       bounds.extend(dublin);
@@ -115,14 +114,14 @@ class MapControllerPageState extends State<MapControllerPage> {
                         ),
                       );
                     },
+                    child: Text('Fit Bounds'),
                   ),
                   Builder(builder: (BuildContext context) {
                     return MaterialButton(
-                      child: Text('Get Bounds'),
                       onPressed: () {
-                        final bounds = mapController.bounds;
+                        final bounds = mapController.bounds!;
 
-                        Scaffold.of(context).showSnackBar(SnackBar(
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           content: Text(
                             'Map bounds: \n'
                             'E: ${bounds.east} \n'
@@ -132,6 +131,7 @@ class MapControllerPageState extends State<MapControllerPage> {
                           ),
                         ));
                       },
+                      child: Text('Get Bounds'),
                     );
                   }),
                   Text('Rotation:'),
@@ -178,8 +178,8 @@ class MapControllerPageState extends State<MapControllerPage> {
 
 class CurrentLocation extends StatefulWidget {
   const CurrentLocation({
-    Key key,
-    @required this.mapController,
+    Key? key,
+    required this.mapController,
   }) : super(key: key);
 
   final MapController mapController;
@@ -192,7 +192,7 @@ class _CurrentLocationState extends State<CurrentLocation> {
   int _eventKey = 0;
 
   var icon = Icons.gps_not_fixed;
-  StreamSubscription<MapEvent> mapEventSubscription;
+  late final StreamSubscription<MapEvent> mapEventSubscription;
 
   @override
   void initState() {
@@ -229,7 +229,7 @@ class _CurrentLocationState extends State<CurrentLocation> {
     try {
       var currentLocation = await location.getLocation();
       var moved = widget.mapController.move(
-        LatLng(currentLocation.latitude, currentLocation.longitude),
+        LatLng(currentLocation.latitude!, currentLocation.longitude!),
         18,
         id: _eventKey.toString(),
       );

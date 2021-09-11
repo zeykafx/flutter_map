@@ -13,7 +13,9 @@ import 'package:flutter_map/src/map/flutter_map_state.dart';
 import 'package:flutter_map/src/map/map.dart';
 import 'package:flutter_map/src/plugins/plugin.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:positioned_tap_detector_2/positioned_tap_detector_2.dart';
 
+export 'package:flutter_map/src/core/center_zoom.dart';
 export 'package:flutter_map/src/core/point.dart';
 export 'package:flutter_map/src/geo/crs/crs.dart';
 export 'package:flutter_map/src/geo/latlng_bounds.dart';
@@ -123,6 +125,11 @@ abstract class MapController {
   /// through the [options] parameter.
   void fitBounds(LatLngBounds bounds, {FitBoundsOptions? options});
 
+  /// Calcs the new center and zoom for the map bounds. Optional constraints can be defined
+  /// through the [options] parameter.
+  CenterZoom centerZoomFitBounds(LatLngBounds bounds,
+      {FitBoundsOptions? options});
+
   Future<Null> get onReady;
 
   LatLng get center;
@@ -138,8 +145,9 @@ abstract class MapController {
   factory MapController() => MapControllerImpl();
 }
 
-typedef TapCallback = void Function(LatLng point);
-typedef LongPressCallback = void Function(LatLng point);
+typedef TapCallback = void Function(TapPosition tapPosition, LatLng point);
+typedef LongPressCallback = void Function(
+    TapPosition tapPosition, LatLng point);
 typedef PositionCallback = void Function(MapPosition position, bool hasGesture);
 typedef MapCreatedCallback = void Function(MapController mapController);
 
@@ -218,6 +226,11 @@ class MapOptions {
   /// gestures will take effect see [MultiFingerGesture] for custom settings
   final int pinchMoveWinGestures;
 
+  /// If true then the map will scroll when the user uses the scroll wheel on
+  /// his mouse. This is supported on web and desktop, but might also work well
+  /// on Android. A [Listener] is used to capture the onPointerSignal events.
+  final bool enableScrollWheel;
+
   final double? minZoom;
   final double? maxZoom;
 
@@ -225,6 +238,7 @@ class MapOptions {
   final int interactiveFlags;
 
   final bool allowPanning;
+  final bool allowPanningOnScrollingParent;
 
   final TapCallback? onTap;
   final LongPressCallback? onLongPress;
@@ -245,6 +259,7 @@ class MapOptions {
   double? _safeAreaZoom;
 
   MapOptions({
+    this.allowPanningOnScrollingParent = true,
     this.crs = const Epsg3857(),
     LatLng? center,
     this.bounds,
@@ -261,6 +276,7 @@ class MapOptions {
     this.pinchMoveThreshold = 40.0,
     this.pinchMoveWinGestures =
         MultiFingerGesture.pinchZoom | MultiFingerGesture.pinchMove,
+    this.enableScrollWheel = true,
     this.minZoom,
     this.maxZoom,
     this.interactiveFlags = InteractiveFlag.all,
@@ -360,11 +376,13 @@ class FitBoundsOptions {
   final EdgeInsets padding;
   final double maxZoom;
   final double? zoom;
+  final bool inside;
 
   const FitBoundsOptions({
     this.padding = const EdgeInsets.all(0.0),
     this.maxZoom = 17.0,
     this.zoom,
+    this.inside = false,
   });
 }
 
@@ -376,6 +394,16 @@ class MapPosition {
   final bool hasGesture;
 
   MapPosition({this.center, this.bounds, this.zoom, this.hasGesture = false});
+
+  @override
+  int get hashCode => center.hashCode + bounds.hashCode + zoom.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      other is MapPosition &&
+      other.center == center &&
+      other.bounds == bounds &&
+      other.zoom == zoom;
 }
 
 class _SafeArea {

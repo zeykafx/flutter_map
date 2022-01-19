@@ -108,9 +108,25 @@ class CirclePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
     canvas.clipRect(rect);
-    final paint = Paint()
-      ..style = PaintingStyle.fill
-      ..color = circle.color;
+
+    // drawing the border the color
+    if (circle.borderStrokeWidth > 0) {
+      Paint paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..color = circle.borderColor
+        ..strokeWidth = circle.borderStrokeWidth+1;
+
+      _paintCircle(
+          canvas,
+          circle.offset,
+          circle.useRadiusInMeter ? circle.realRadius as double : circle.radius,
+          paint);
+
+      // main ring color
+      paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..color = circle.color
+      ..strokeWidth = circle.borderStrokeWidth;
 
     _paintCircle(
         canvas,
@@ -118,17 +134,7 @@ class CirclePainter extends CustomPainter {
         circle.useRadiusInMeter ? circle.realRadius as double : circle.radius,
         paint);
 
-    if (circle.borderStrokeWidth > 0) {
-      final paint = Paint()
-        ..style = PaintingStyle.stroke
-        ..color = circle.borderColor
-        ..strokeWidth = circle.borderStrokeWidth;
 
-      _paintCircle(
-          canvas,
-          circle.offset,
-          circle.useRadiusInMeter ? circle.realRadius as double : circle.radius,
-          paint);
     }
   }
 

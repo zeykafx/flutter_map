@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map_example/pages/epsg4326_crs.dart';
 import 'package:flutter_map_example/pages/map_inside_listview.dart';
 import 'package:flutter_map_example/pages/network_tile_provider.dart';
 
@@ -7,11 +8,13 @@ import './pages/circle.dart';
 import './pages/custom_crs/custom_crs.dart';
 import './pages/esri.dart';
 import './pages/home.dart';
+import './pages/interactive_test_page.dart';
 import './pages/live_location.dart';
 import './pages/many_markers.dart';
 import './pages/map_controller.dart';
 import './pages/marker_anchor.dart';
 import './pages/marker_rotate.dart';
+import './pages/max_bounds.dart';
 import './pages/moving_markers.dart';
 import './pages/offline_map.dart';
 import './pages/on_tap.dart';
@@ -19,6 +22,7 @@ import './pages/overlay_image.dart';
 import './pages/plugin_api.dart';
 import './pages/plugin_scalebar.dart';
 import './pages/plugin_zoombuttons.dart';
+import './pages/polygon.dart';
 import './pages/polyline.dart';
 import './pages/reset_tile_layer.dart';
 import './pages/sliding_map.dart';
@@ -28,7 +32,6 @@ import './pages/tile_builder_example.dart';
 import './pages/tile_loading_error_handle.dart';
 import './pages/widgets.dart';
 import './pages/wms_tile_layer.dart';
-import 'pages/interactive_test_page.dart';
 
 void main() => runApp(MyApp());
 
@@ -61,6 +64,7 @@ class MyApp extends StatelessWidget {
         MovingMarkersPage.route: (context) => MovingMarkersPage(),
         CirclePage.route: (context) => CirclePage(),
         OverlayImagePage.route: (context) => OverlayImagePage(),
+        PolygonPage.route: (context) => PolygonPage(),
         SlidingMapPage.route: (_) => SlidingMapPage(),
         WMSLayerPage.route: (context) => WMSLayerPage(),
         CustomCrsPage.route: (context) => CustomCrsPage(),
@@ -72,6 +76,8 @@ class MyApp extends StatelessWidget {
         StatefulMarkersPage.route: (context) => StatefulMarkersPage(),
         MapInsideListViewPage.route: (context) => MapInsideListViewPage(),
         ResetTileLayerPage.route: (context) => ResetTileLayerPage(),
+        EPSG4326Page.route: (context) => EPSG4326Page(),
+        MaxBoundsPage.route: (context) => MaxBoundsPage(),
       },
     );
   }

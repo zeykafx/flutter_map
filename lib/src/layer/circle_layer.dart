@@ -17,6 +17,7 @@ class CircleMarker {
   final double radius;
   final Color color;
   final double borderStrokeWidth;
+  final double innerBorderStrokeWidth;
   final Color borderColor;
   final bool useRadiusInMeter;
   Offset offset = Offset.zero;
@@ -27,6 +28,7 @@ class CircleMarker {
     this.useRadiusInMeter = false,
     this.color = const Color(0xFF00FF00),
     this.borderStrokeWidth = 0.0,
+    this.innerBorderStrokeWidth = 0.0,
     this.borderColor = const Color(0xFFFFFF00),
   });
 }
@@ -110,7 +112,7 @@ class CirclePainter extends CustomPainter {
       Paint paint = Paint()
         ..style = PaintingStyle.stroke
         ..color = circle.borderColor
-        ..strokeWidth = circle.borderStrokeWidth+1;
+        ..strokeWidth = circle.borderStrokeWidth;
 
       _paintCircle(
           canvas,
@@ -122,7 +124,7 @@ class CirclePainter extends CustomPainter {
       paint = Paint()
       ..style = PaintingStyle.stroke
       ..color = circle.color
-      ..strokeWidth = circle.borderStrokeWidth;
+      ..strokeWidth = circle.innerBorderStrokeWidth;
 
     _paintCircle(
         canvas,

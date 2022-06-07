@@ -11,7 +11,7 @@ class OverlayWidgetLayerOptions extends LayerOptions {
   OverlayWidgetLayerOptions({
     Key? key,
     this.overlayWidget = const [],
-    Stream<Null>? rebuild,
+    Stream<void>? rebuild,
   }) : super(key: key, rebuild: rebuild);
 }
 
@@ -42,7 +42,7 @@ class OverlayWidgetLayerWidget extends StatelessWidget {
 class OverlayWidgetLayer extends StatelessWidget {
   final OverlayWidgetLayerOptions overlayWidgetOpts;
   final MapState map;
-  final Stream<Null>? stream;
+  final Stream<void>? stream;
 
   OverlayWidgetLayer(this.overlayWidgetOpts, this.map, this.stream)
       : super(key: overlayWidgetOpts.key);

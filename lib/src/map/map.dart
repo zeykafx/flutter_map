@@ -21,7 +21,7 @@ class MapControllerImpl implements MapController {
     _mapEventSink.close();
   }
 
-  late final MapState _state;
+  late MapState _state;
   @override
   set state(MapState state) {
     _state = state;
@@ -123,6 +123,8 @@ class MapState {
   final ValueChanged<double> onRotationChanged;
   final StreamController<void> _onMoveSink;
   final StreamSink<MapEvent> _mapEventSink;
+  // TODO: This is for fast_markers - don't know if it's good
+  RawTapCallback? onTapRaw;
 
   double _zoom;
   double _rotation;

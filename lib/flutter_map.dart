@@ -155,9 +155,12 @@ abstract class MapController {
   factory MapController() => MapControllerImpl();
 }
 
-typedef TapCallback = void Function(TapPosition tapPosition, LatLng point);
-typedef LongPressCallback = void Function(
-    TapPosition tapPosition, LatLng point);
+typedef TapCallback = void Function(LatLng point);
+// TODO: This is for fast_markers - don't know if it's good
+/// Return false if normal [onTap] should *not* be executed
+/// For example, when marker was tapped. Otherwise return true
+typedef RawTapCallback = bool Function(TapPosition position);
+typedef LongPressCallback = void Function(LatLng point);
 typedef PositionCallback = void Function(MapPosition position, bool hasGesture);
 typedef MapCreatedCallback = void Function(MapController mapController);
 

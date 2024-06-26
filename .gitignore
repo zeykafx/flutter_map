@@ -8,6 +8,7 @@
 .buildlog/
 .history
 .svn/
+.fvm/
 
 # IntelliJ related
 *.iml
@@ -74,3 +75,6 @@ pubspec.lock
 !**/ios/**/default.mode2v3
 !**/ios/**/default.pbxuser
 !**/ios/**/default.perspectivev3
+
+# Coverage files
+coverage/

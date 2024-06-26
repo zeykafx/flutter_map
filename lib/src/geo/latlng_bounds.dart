@@ -1,188 +1,244 @@
-import 'dart:math' as math;
+import 'dart:math';
 
 import 'package:latlong2/latlong.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 /// Data structure representing rectangular bounding box constrained by its
 /// northwest and southeast corners
 class LatLngBounds {
-  LatLng? _sw;
-  LatLng? _ne;
+  /// minimum latitude value, south
+  static const double minLatitude = -90;
 
-  LatLngBounds([LatLng? corner1, LatLng? corner2]) {
-    extend(corner1);
-    extend(corner2);
-  }
+  /// maximum latitude value, north
+  static const double maxLatitude = 90;
 
-  LatLngBounds.fromPoints(List<LatLng> points) {
-    if (points.isNotEmpty) {
-      num? minX;
-      num? maxX;
-      num? minY;
-      num? maxY;
+  /// minimum longitude value, west
+  static const double minLongitude = -180;
 
-      for (final point in points) {
-        final num x = point.longitudeInRad;
-        final num y = point.latitudeInRad;
+  /// maximum longitude value, east
+  static const double maxLongitude = 180;
 
-        if (minX == null || minX > x) {
-          minX = x;
-        }
+  /// The latitude north edge of the bounds
+  double north;
 
-        if (minY == null || minY > y) {
-          minY = y;
-        }
+  /// The latitude south edge of the bounds
+  double south;
 
-        if (maxX == null || maxX < x) {
-          maxX = x;
-        }
+  /// The longitude east edge of the bounds
+  double east;
 
-        if (maxY == null || maxY < y) {
-          maxY = y;
-        }
-      }
+  /// The longitude west edge of the bounds
+  double west;
 
-      _sw = LatLng(radianToDeg(minY as double), radianToDeg(minX as double));
-      _ne = LatLng(radianToDeg(maxY as double), radianToDeg(maxX as double));
+  /// Create new [LatLngBounds] by providing two corners. Both corners have to
+  /// be on opposite sites but it doesn't matter which opposite corners or in
+  /// what order the corners are provided.
+  ///
+  /// If you want to create [LatLngBounds] with raw values, use the
+  /// [LatLngBounds.unsafe] constructor instead.
+  factory LatLngBounds(LatLng corner1, LatLng corner2) {
+    final double minX;
+    final double maxX;
+    final double minY;
+    final double maxY;
+    if (corner1.longitude >= corner2.longitude) {
+      maxX = corner1.longitude;
+      minX = corner2.longitude;
+    } else {
+      maxX = corner2.longitude;
+      minX = corner1.longitude;
     }
+    if (corner1.latitude >= corner2.latitude) {
+      maxY = corner1.latitude;
+      minY = corner2.latitude;
+    } else {
+      maxY = corner2.latitude;
+      minY = corner1.latitude;
+    }
+    return LatLngBounds.unsafe(
+      north: maxY,
+      south: minY,
+      east: maxX,
+      west: minX,
+    );
   }
 
-  /// Expands bounding box by [latlng] coordinate point. This method mutates
+  /// Create a [LatLngBounds] instance from raw edge values.
+  ///
+  /// Potentially throws assertion errors if the coordinates exceed their max
+  /// or min values or if coordinates are meant to be smaller / bigger
+  /// but aren't.
+  LatLngBounds.unsafe({
+    required this.north,
+    required this.south,
+    required this.east,
+    required this.west,
+  })  : assert(north <= maxLatitude,
+            "The north latitude can't be bigger than $maxLatitude: $north"),
+        assert(north >= minLatitude,
+            "The north latitude can't be smaller than $minLatitude: $north"),
+        assert(south <= maxLatitude,
+            "The south latitude can't be bigger than $maxLatitude: $south"),
+        assert(south >= minLatitude,
+            "The south latitude can't be smaller than $minLatitude: $south"),
+        assert(east <= maxLongitude,
+            "The east longitude can't be bigger than $maxLongitude: $east"),
+        assert(east >= minLongitude,
+            "The east longitude can't be smaller than $minLongitude: $east"),
+        assert(west <= maxLongitude,
+            "The west longitude can't be bigger than $maxLongitude: $west"),
+        assert(west >= minLongitude,
+            "The west longitude can't be smaller than $minLongitude: $west"),
+        assert(
+          north >= south,
+          "The north latitude ($north) can't be smaller than the "
+          'south latitude ($south)',
+        ),
+        assert(
+          east >= west,
+          "The west longitude ($west) can't be smaller than the "
+          'east longitude ($east)',
+        );
+
+  /// Create a new [LatLngBounds] from a list of [LatLng] points. This
+  /// calculates the bounding box of the provided points.
+  factory LatLngBounds.fromPoints(List<LatLng> points) {
+    assert(
+      points.isNotEmpty,
+      'LatLngBounds cannot be created with an empty List of LatLng',
+    );
+    // initialize bounds with max values.
+    double minX = maxLongitude;
+    double maxX = minLongitude;
+    double minY = maxLatitude;
+    double maxY = minLatitude;
+    // find the largest and smallest latitude and longitude
+    for (final point in points) {
+      if (point.longitude < minX) minX = point.longitude;
+      if (point.longitude > maxX) maxX = point.longitude;
+      if (point.latitude < minY) minY = point.latitude;
+      if (point.latitude > maxY) maxY = point.latitude;
+    }
+    return LatLngBounds.unsafe(
+      north: maxY,
+      south: minY,
+      east: maxX,
+      west: minX,
+    );
+  }
+
+  /// Expands bounding box by [latLng] coordinate point. This method mutates
   /// the bounds object on which it is called.
-  void extend(LatLng? latlng) {
-    if (latlng == null) {
-      return;
-    }
-    _extend(latlng, latlng);
+  void extend(LatLng latLng) {
+    north = min(maxLatitude, max(north, latLng.latitude));
+    south = max(minLatitude, min(south, latLng.latitude));
+    east = min(maxLongitude, max(east, latLng.longitude));
+    west = max(minLongitude, min(west, latLng.longitude));
   }
 
   /// Expands bounding box by other [bounds] object. If provided [bounds] object
   /// is smaller than current one, it is not shrunk. This method mutates
   /// the bounds object on which it is called.
   void extendBounds(LatLngBounds bounds) {
-    _extend(bounds._sw, bounds._ne);
+    north = min(maxLatitude, max(north, bounds.north));
+    south = max(minLatitude, min(south, bounds.south));
+    east = min(maxLongitude, max(east, bounds.east));
+    west = max(minLongitude, min(west, bounds.west));
   }
 
-  void _extend(LatLng? sw2, LatLng? ne2) {
-    if (_sw == null && _ne == null) {
-      _sw = LatLng(sw2!.latitude, sw2.longitude);
-      _ne = LatLng(ne2!.latitude, ne2.longitude);
-    } else {
-      _sw!.latitude = math.min(sw2!.latitude, _sw!.latitude);
-      _sw!.longitude = math.min(sw2.longitude, _sw!.longitude);
-      _ne!.latitude = math.max(ne2!.latitude, _ne!.latitude);
-      _ne!.longitude = math.max(ne2.longitude, _ne!.longitude);
-    }
-  }
+  /// Obtain coordinates of southwest corner of the bounds.
+  ///
+  /// Instead of using latitude or longitude of the corner, use [south] or
+  /// [west] instead!
+  LatLng get southWest => LatLng(south, west);
 
-  /// Obtain west edge of the bounds
-  double get west => southWest!.longitude;
+  /// Obtain coordinates of northeast corner of the bounds.
+  ///
+  /// Instead of using latitude or longitude of the corner, use [north] or
+  /// [east] instead!
+  LatLng get northEast => LatLng(north, east);
 
-  /// Obtain south edge of the bounds
-  double get south => southWest!.latitude;
-
-  /// Obtain east edge of the bounds
-  double get east => northEast!.longitude;
-
-  /// Obtain north edge of the bounds
-  double get north => northEast!.latitude;
-
-  /// Obtain coordinates of southwest corner of the bounds
-  LatLng? get southWest => _sw;
-
-  /// Obtain coordinates of northeast corner of the bounds
-  LatLng? get northEast => _ne;
-
-  /// Obtain coordinates of northwest corner of the bounds
+  /// Obtain coordinates of northwest corner of the bounds.
+  ///
+  /// Instead of using latitude or longitude of the corner, use [north] or
+  /// [west] instead!
   LatLng get northWest => LatLng(north, west);
 
-  /// Obtain coordinates of southeast corner of the bounds
+  /// Obtain coordinates of southeast corner of the bounds.
+  ///
+  /// Instead of using latitude or longitude of the corner, use [south] or
+  /// [east] instead!
   LatLng get southEast => LatLng(south, east);
 
   /// Obtain coordinates of the bounds center
   LatLng get center {
-    /* https://stackoverflow.com/a/4656937
-       http://www.movable-type.co.uk/scripts/latlong.html
+    // https://stackoverflow.com/a/4656937
+    // http://www.movable-type.co.uk/scripts/latlong.html
+    // coord 1: southWest
+    // coord 2: northEast
+    // phi: lat
+    // lambda: lng
 
-       coord 1: southWest
-       coord 2: northEast
+    final phi1 = south * degrees2Radians;
+    final lambda1 = west * degrees2Radians;
+    final phi2 = north * degrees2Radians;
 
-       phi: lat
-       lambda: lng
-    */
+    // delta lambda = lambda2-lambda1
+    final dLambda = degrees2Radians * (east - west);
 
-    final phi1 = southWest!.latitudeInRad;
-    final lambda1 = southWest!.longitudeInRad;
-    final phi2 = northEast!.latitudeInRad;
-
-    final dLambda = degToRadian(northEast!.longitude -
-        southWest!.longitude); // delta lambda = lambda2-lambda1
-
-    final bx = math.cos(phi2) * math.cos(dLambda);
-    final by = math.cos(phi2) * math.sin(dLambda);
-    final phi3 = math.atan2(math.sin(phi1) + math.sin(phi2),
-        math.sqrt((math.cos(phi1) + bx) * (math.cos(phi1) + bx) + by * by));
-    final lambda3 = lambda1 + math.atan2(by, math.cos(phi1) + bx);
+    final bx = cos(phi2) * cos(dLambda);
+    final by = cos(phi2) * sin(dLambda);
+    final phi3 = atan2(sin(phi1) + sin(phi2),
+        sqrt((cos(phi1) + bx) * (cos(phi1) + bx) + by * by));
+    final lambda3 = lambda1 + atan2(by, cos(phi1) + bx);
 
     // phi3 and lambda3 are actually in radians and LatLng wants degrees
-    return LatLng(radianToDeg(phi3), radianToDeg(lambda3));
+    return LatLng(
+      phi3 * radians2Degrees,
+      (lambda3 * radians2Degrees + 540) % 360 - 180,
+    );
   }
 
-  /// Checks whether bound object is valid
-  bool get isValid {
-    return _sw != null && _ne != null;
-  }
+  /// Obtain simple coordinates of the bounds center
+  LatLng get simpleCenter => LatLng((south + north) / 2, (east + west) / 2);
 
   /// Checks whether [point] is inside bounds
-  bool contains(LatLng? point) {
-    if (!isValid) {
-      return false;
-    }
-    final sw2 = point;
-    final ne2 = point;
-    return containsBounds(LatLngBounds(sw2, ne2));
-  }
+  bool contains(LatLng point) =>
+      point.longitude >= west &&
+      point.longitude <= east &&
+      point.latitude >= south &&
+      point.latitude <= north;
 
-  /// Checks whether [bounds] is contained inside bounds
-  bool containsBounds(LatLngBounds bounds) {
-    final sw2 = bounds._sw!;
-    final ne2 = bounds._ne;
-    return (sw2.latitude >= _sw!.latitude) &&
-        (ne2!.latitude <= _ne!.latitude) &&
-        (sw2.longitude >= _sw!.longitude) &&
-        (ne2.longitude <= _ne!.longitude);
-  }
+  /// Checks whether the [other] bounding box is contained inside bounds.
+  bool containsBounds(LatLngBounds other) =>
+      other.south >= south &&
+      other.north <= north &&
+      other.west >= west &&
+      other.east <= east;
 
-  /// Checks whether at least one edge of [bounds] is overlapping with some
-  /// other edge of bounds
-  bool isOverlapping(LatLngBounds? bounds) {
-    if (!isValid) {
-      return false;
-    }
-    /* check if bounding box rectangle is outside the other, if it is then it's
-       considered not overlapping
-    */
-    if (_sw!.latitude > bounds!._ne!.latitude ||
-        _ne!.latitude < bounds._sw!.latitude ||
-        _ne!.longitude < bounds._sw!.longitude ||
-        _sw!.longitude > bounds._ne!.longitude) {
-      return false;
-    }
-    return true;
-  }
-
-  /// Expands bounds by decimal degrees unlike [extend] or [extendBounds]
-  void pad(double bufferRatio) {
-    final heightBuffer = (_sw!.latitude - _ne!.latitude).abs() * bufferRatio;
-    final widthBuffer = (_sw!.longitude - _ne!.longitude).abs() * bufferRatio;
-
-    _sw = LatLng(_sw!.latitude - heightBuffer, _sw!.longitude - widthBuffer);
-    _ne = LatLng(_ne!.latitude + heightBuffer, _ne!.longitude + widthBuffer);
-  }
+  /// Checks whether at least one edge of the [other] bounding box  is
+  /// overlapping with this bounding box.
+  ///
+  /// Bounding boxes that touch each other but don't overlap are counted as
+  /// not overlapping.
+  bool isOverlapping(LatLngBounds other) => !(south > other.north ||
+      north < other.south ||
+      east < other.west ||
+      west > other.east);
 
   @override
-  int get hashCode => _sw.hashCode + _ne.hashCode;
+  int get hashCode => Object.hash(south, north, east, west);
 
   @override
   bool operator ==(Object other) =>
-      other is LatLngBounds && other._sw == _sw && other._ne == _ne;
+      identical(this, other) ||
+      (other is LatLngBounds &&
+          other.north == north &&
+          other.south == south &&
+          other.east == east &&
+          other.west == west);
+
+  @override
+  String toString() =>
+      'LatLngBounds(north: $north, south: $south, east: $east, west: $west)';
 }

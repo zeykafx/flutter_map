@@ -1,20 +1,22 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_map/plugin_api.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_example/widgets/drawer/menu_drawer.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:proj4dart/proj4dart.dart' as proj4;
-
-import '../../widgets/drawer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CustomCrsPage extends StatefulWidget {
-  static const String route = 'custom_crs';
+  static const String route = '/crs_custom';
 
-  const CustomCrsPage({Key? key}) : super(key: key);
+  const CustomCrsPage({super.key});
 
   @override
-  _CustomCrsPageState createState() => _CustomCrsPageState();
+  CustomCrsPageState createState() => CustomCrsPageState();
 }
 
-class _CustomCrsPageState extends State<CustomCrsPage> {
+class CustomCrsPageState extends State<CustomCrsPage> {
   late final Proj4Crs epsg3413CRS;
 
   double? maxZoom;
@@ -56,8 +58,8 @@ class _CustomCrsPageState extends State<CustomCrsPage> {
     ];
 
     final epsg3413Bounds = Bounds<double>(
-      const CustomPoint<double>(-4511619.0, -4511336.0),
-      const CustomPoint<double>(4510883.0, 4510996.0),
+      const Point<double>(-4511619, -4511336),
+      const Point<double>(4510883, 4510996),
     );
 
     maxZoom = (resolutions.length - 1).toDouble();
@@ -76,14 +78,12 @@ class _CustomCrsPageState extends State<CustomCrsPage> {
       bounds: epsg3413Bounds,
       // Tile origin, in projected coordinates, if set, this overrides the transformation option
       // Some goeserver changes origin based on zoom level
-      // and some are not at all (use explicit/implicit null or use [CustomPoint(0, 0)])
+      // and some are not at all (use explicit/implicit null or use [Point(0, 0)])
       // @see https://github.com/kartena/Proj4Leaflet/pull/171
-      origins: [const CustomPoint(0, 0)],
+      origins: const [Point(0, 0)],
       // Scale factors (pixels per projection unit, for example pixels/meter) for zoom levels;
       // specify either scales or resolutions, not both
       scales: null,
-      // The transformation to use when transforming projected coordinates into pixel coordinates
-      transformation: null,
     );
   }
 
@@ -91,36 +91,36 @@ class _CustomCrsPageState extends State<CustomCrsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Custom CRS')),
-      drawer: buildDrawer(context, CustomCrsPage.route),
+      drawer: const MenuDrawer(CustomCrsPage.route),
       body: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(8),
         child: Column(
           children: [
             const Padding(
-              padding: EdgeInsets.only(top: 8.0, bottom: 2.0),
+              padding: EdgeInsets.only(top: 8, bottom: 2),
               child: Text(
                 'This map is in EPSG:3413',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.blue,
-                  fontSize: 16.0,
+                  fontSize: 16,
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(top: 8.0, bottom: 2.0),
+              padding: const EdgeInsets.only(top: 8, bottom: 2),
               child: Text(
                 '$initText (${point.x.toStringAsFixed(5)}, ${point.y.toStringAsFixed(5)}) in EPSG:4326.',
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(top: 2.0, bottom: 2.0),
+              padding: const EdgeInsets.only(top: 2, bottom: 2),
               child: Text(
                 'Which is (${epsg4326.transform(epsg3413, point).x.toStringAsFixed(2)}, ${epsg4326.transform(epsg3413, point).y.toStringAsFixed(2)}) in EPSG:3413.',
               ),
             ),
             const Padding(
-              padding: EdgeInsets.only(top: 2.0, bottom: 8.0),
+              padding: EdgeInsets.only(top: 2, bottom: 8),
               child: Text('Tap on map to get more coordinates!'),
             ),
             Flexible(
@@ -128,8 +128,8 @@ class _CustomCrsPageState extends State<CustomCrsPage> {
                 options: MapOptions(
                   // Set the default CRS
                   crs: epsg3413CRS,
-                  center: LatLng(point.x, point.y),
-                  zoom: 3.0,
+                  initialCenter: LatLng(point.x, point.y),
+                  initialZoom: 3,
                   // Set maxZoom usually scales.length - 1 OR resolutions.length - 1
                   // but not greater
                   maxZoom: maxZoom,
@@ -138,19 +138,29 @@ class _CustomCrsPageState extends State<CustomCrsPage> {
                     point = proj4.Point(x: p.latitude, y: p.longitude);
                   }),
                 ),
-                layers: [
-                  TileLayerOptions(
-                    opacity: 1.0,
-                    backgroundColor: Colors.transparent,
+                children: [
+                  TileLayer(
                     wmsOptions: WMSTileLayerOptions(
-                      // Set the WMS layer's CRS
                       crs: epsg3413CRS,
                       transparent: true,
                       format: 'image/jpeg',
                       baseUrl:
                           'https://www.gebco.net/data_and_products/gebco_web_services/north_polar_view_wms/mapserv?',
-                      layers: ['gebco_north_polar_view'],
+                      layers: const ['gebco_north_polar_view'],
                     ),
+                  ),
+                  RichAttributionWidget(
+                    popupInitialDisplayDuration: const Duration(seconds: 5),
+                    attributions: [
+                      TextSourceAttribution(
+                        'Imagery reproduced from the GEBCO_2022 Grid, GEBCO Compilation Group (2022) GEBCO 2022 Grid (doi:10.5285/e0f0bb80-ab44-2739-e053-6c86abc0289c)',
+                        onTap: () => launchUrl(
+                          Uri.parse(
+                            'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/#polar',
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

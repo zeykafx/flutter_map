@@ -1,50 +1,51 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_example/misc/tile_providers.dart';
+import 'package:flutter_map_example/widgets/drawer/menu_drawer.dart';
+import 'package:flutter_map_example/widgets/number_of_items_slider.dart';
+import 'package:flutter_map_example/widgets/show_no_web_perf_overlay_snackbar.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../widgets/drawer.dart';
+const _maxMarkersCount = 20000;
 
-const maxMarkersCount = 5000;
-
-/// On this page, [maxMarkersCount] markers are randomly generated
+/// On this page, [_maxMarkersCount] markers are randomly generated
 /// across europe, and then you can limit them with a slider
 ///
 /// This way, you can test how map performs under a lot of markers
 class ManyMarkersPage extends StatefulWidget {
   static const String route = '/many_markers';
 
-  const ManyMarkersPage({Key? key}) : super(key: key);
+  const ManyMarkersPage({super.key});
 
   @override
-  _ManyMarkersPageState createState() => _ManyMarkersPageState();
+  ManyMarkersPageState createState() => ManyMarkersPageState();
 }
 
-class _ManyMarkersPageState extends State<ManyMarkersPage> {
+class ManyMarkersPageState extends State<ManyMarkersPage> {
   double doubleInRange(Random source, num start, num end) =>
       source.nextDouble() * (end - start) + start;
   List<Marker> allMarkers = [];
 
-  int _sliderVal = maxMarkersCount ~/ 10;
+  int numOfMarkers = _maxMarkersCount ~/ 10;
 
   @override
   void initState() {
     super.initState();
+
+    showNoWebPerfOverlaySnackbar(context);
+
     Future.microtask(() {
-      var r = Random();
-      for (var x = 0; x < maxMarkersCount; x++) {
+      final r = Random();
+      for (var x = 0; x < _maxMarkersCount; x++) {
         allMarkers.add(
           Marker(
-            point: LatLng(
-              doubleInRange(r, 37, 55),
-              doubleInRange(r, -9, 30),
-            ),
-            builder: (context) => const Icon(
-              Icons.circle,
-              color: Colors.red,
-              size: 12.0,
-            ),
+            point: LatLng(doubleInRange(r, 37, 55), doubleInRange(r, -9, 30)),
+            height: 12,
+            width: 12,
+            child: ColoredBox(color: Colors.blue[900]!),
           ),
         );
       }
@@ -55,41 +56,48 @@ class _ManyMarkersPageState extends State<ManyMarkersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('A lot of markers')),
-      drawer: buildDrawer(context, ManyMarkersPage.route),
-      body: Column(
+      appBar: AppBar(title: const Text('Many Markers')),
+      drawer: const MenuDrawer(ManyMarkersPage.route),
+      body: Stack(
         children: [
-          Slider(
-            min: 0,
-            max: maxMarkersCount.toDouble(),
-            divisions: maxMarkersCount ~/ 500,
-            label: 'Markers',
-            value: _sliderVal.toDouble(),
-            onChanged: (newVal) {
-              _sliderVal = newVal.toInt();
-              setState(() {});
-            },
-          ),
-          Text('$_sliderVal markers'),
-          Flexible(
-            child: FlutterMap(
-              options: MapOptions(
-                center: LatLng(50, 20),
-                zoom: 5.0,
-                interactiveFlags: InteractiveFlag.all - InteractiveFlag.rotate,
-              ),
-              layers: [
-                TileLayerOptions(
-                  urlTemplate:
-                      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  subdomains: ['a', 'b', 'c'],
+          FlutterMap(
+            options: MapOptions(
+              initialCameraFit: CameraFit.bounds(
+                bounds: LatLngBounds(
+                  const LatLng(55, -9),
+                  const LatLng(37, 30),
                 ),
-                MarkerLayerOptions(
-                    markers: allMarkers.sublist(
-                        0, min(allMarkers.length, _sliderVal))),
-              ],
+                padding: const EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 88,
+                  bottom: 192,
+                ),
+              ),
+            ),
+            children: [
+              openStreetMapTileLayer,
+              MarkerLayer(markers: allMarkers.take(numOfMarkers).toList()),
+            ],
+          ),
+          Positioned(
+            left: 16,
+            top: 16,
+            right: 16,
+            child: NumberOfItemsSlider(
+              number: numOfMarkers,
+              onChanged: (v) => setState(() => numOfMarkers = v),
+              maxNumber: _maxMarkersCount,
+              itemDescription: 'Marker',
             ),
           ),
+          if (!kIsWeb)
+            Positioned(
+              bottom: 16,
+              left: 0,
+              right: 0,
+              child: PerformanceOverlay.allEnabled(),
+            ),
         ],
       ),
     );

@@ -1,4 +1,10 @@
-include: package:flutter_lints/flutter.yaml
+# match the lint rules from flutter_map
+include: ./../analysis_options.yaml
+
+# only specify things that should be different from the package
 linter:
   rules:
-    library_private_types_in_public_api: false
+    # using the default parameter values are used as explanation and for showcase
+    avoid_redundant_argument_values: false
+    # don't enforce documentation for the example app
+    public_member_api_docs: false

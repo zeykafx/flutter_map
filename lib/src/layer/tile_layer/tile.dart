@@ -1,125 +1,95 @@
+import 'dart:math';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 
-typedef TileReady = void Function(
-    Coords<double> coords, dynamic error, Tile tile);
+/// The widget for a single tile used for the [TileLayer].
+@immutable
+class Tile extends StatefulWidget {
+  /// [TileImage] is the model class that contains meta data for the Tile image.
+  final TileImage tileImage;
 
-class Tile {
-  final Coords<double> coords;
-  final CustomPoint<num> tilePos;
-  ImageProvider imageProvider;
+  /// The [TileBuilder] is a reference to the [TileLayer]'s
+  /// [TileLayer.tileBuilder].
+  final TileBuilder? tileBuilder;
 
-  bool current;
-  bool retain;
-  bool active;
-  bool loadError;
-  DateTime? loaded;
-  late DateTime loadStarted;
+  /// The tile size for the given scale of the map.
+  final double scaledTileSize;
 
-  AnimationController? animationController;
+  /// Reference to the offset of the top-left corner of the bounding rectangle
+  /// of the [MapCamera]. The origin will not equal the offset of the top-left
+  /// visible pixel when the map is rotated.
+  final Point<double> currentPixelOrigin;
 
-  double get opacity => animationController == null
-      ? (active ? 1.0 : 0.0)
-      : animationController!.value;
-
-  // callback when tile is ready / error occurred
-  // it maybe be null for instance when download aborted
-  TileReady? tileReady;
-  ImageInfo? imageInfo;
-  ImageStream? _imageStream;
-  late ImageStreamListener _listener;
-
-  Tile({
-    required this.coords,
-    required this.tilePos,
-    required this.imageProvider,
-    this.tileReady,
-    this.current = false,
-    this.active = false,
-    this.retain = false,
-    this.loadError = false,
+  /// Creates a new instance of [Tile].
+  const Tile({
+    super.key,
+    required this.scaledTileSize,
+    required this.currentPixelOrigin,
+    required this.tileImage,
+    required this.tileBuilder,
   });
 
-  void loadTileImage() {
-    loadStarted = DateTime.now();
+  @override
+  State<Tile> createState() => _TileState();
+}
 
-    try {
-      final oldImageStream = _imageStream;
-      _imageStream = imageProvider.resolve(ImageConfiguration.empty);
-
-      if (_imageStream!.key != oldImageStream?.key) {
-        oldImageStream?.removeListener(_listener);
-
-        _listener = ImageStreamListener(_tileOnLoad, onError: _tileOnError);
-        _imageStream!.addListener(_listener);
-      }
-    } catch (e, s) {
-      // make sure all exception is handled - #444 / #536
-      _tileOnError(e, s);
-    }
+class _TileState extends State<Tile> {
+  @override
+  void initState() {
+    super.initState();
+    widget.tileImage.addListener(_onTileImageChange);
   }
-
-  // call this before GC!
-  void dispose([bool evict = false]) {
-    if (evict) {
-      try {
-        // ignore: return_type_invalid_for_catch_error
-        // ignore: implicit_dynamic_parameter
-        imageProvider.evict().catchError((e) {
-          debugPrint(e.toString());
-        });
-      } catch (e) {
-        // this may be never called because catchError will handle errors, however
-        // we want to avoid random crashes like in #444 / #536
-        debugPrint(e.toString());
-      }
-    }
-
-    animationController?.removeStatusListener(_onAnimateEnd);
-    animationController?.dispose();
-    _imageStream?.removeListener(_listener);
-  }
-
-  void startFadeInAnimation(Duration duration, TickerProvider vsync,
-      {double? from}) {
-    animationController?.removeStatusListener(_onAnimateEnd);
-
-    animationController = AnimationController(duration: duration, vsync: vsync)
-      ..addStatusListener(_onAnimateEnd);
-
-    animationController!.forward(from: from);
-  }
-
-  void _onAnimateEnd(AnimationStatus status) {
-    if (status == AnimationStatus.completed) {
-      active = true;
-    }
-  }
-
-  void _tileOnLoad(ImageInfo imageInfo, bool synchronousCall) {
-    if (null != tileReady) {
-      this.imageInfo = imageInfo;
-      tileReady!(coords, null, this);
-    }
-  }
-
-  void _tileOnError(dynamic exception, StackTrace? stackTrace) {
-    if (null != tileReady) {
-      tileReady!(
-          coords, exception ?? 'Unknown exception during loadTileImage', this);
-    }
-  }
-
-  String get coordsKey => coords.key;
-
-  double zIndex(double maxZoom, double currentZoom) =>
-      maxZoom - (currentZoom - coords.z).abs();
 
   @override
-  int get hashCode => coords.hashCode;
+  void dispose() {
+    widget.tileImage.removeListener(_onTileImageChange);
+    super.dispose();
+  }
+
+  void _onTileImageChange() {
+    if (mounted) setState(() {});
+  }
 
   @override
-  bool operator ==(Object other) {
-    return other is Tile && coords == other.coords;
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: widget.tileImage.coordinates.x * widget.scaledTileSize -
+          widget.currentPixelOrigin.x,
+      top: widget.tileImage.coordinates.y * widget.scaledTileSize -
+          widget.currentPixelOrigin.y,
+      width: widget.scaledTileSize,
+      height: widget.scaledTileSize,
+      child: widget.tileBuilder?.call(context, _tileImage, widget.tileImage) ??
+          _tileImage,
+    );
+  }
+
+  Widget get _tileImage {
+    if (widget.tileImage.loadError && widget.tileImage.errorImage != null) {
+      return Image(
+        image: widget.tileImage.errorImage!,
+        opacity: widget.tileImage.opacity == 1
+            ? null
+            : AlwaysStoppedAnimation(widget.tileImage.opacity),
+      );
+    } else if (widget.tileImage.animation == null) {
+      return RawImage(
+        image: widget.tileImage.imageInfo?.image,
+        fit: BoxFit.fill,
+        opacity: widget.tileImage.opacity == 1
+            ? null
+            : AlwaysStoppedAnimation(widget.tileImage.opacity),
+      );
+    } else {
+      return AnimatedBuilder(
+        animation: widget.tileImage.animation!,
+        builder: (context, child) => RawImage(
+          image: widget.tileImage.imageInfo?.image,
+          fit: BoxFit.fill,
+          opacity: widget.tileImage.animation,
+        ),
+      );
+    }
   }
 }

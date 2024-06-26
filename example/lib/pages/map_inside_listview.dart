@@ -1,51 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/plugin_api.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_example/misc/tile_providers.dart';
+import 'package:flutter_map_example/plugins/zoombuttons_plugin.dart';
+import 'package:flutter_map_example/widgets/drawer/menu_drawer.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../pages/zoombuttons_plugin_option.dart';
-import '../widgets/drawer.dart';
-
 class MapInsideListViewPage extends StatelessWidget {
-  static const String route = 'map_inside_listview';
+  static const String route = '/map_inside_listview';
 
-  const MapInsideListViewPage({Key? key}) : super(key: key);
+  const MapInsideListViewPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Map inside ListView')),
-      drawer: buildDrawer(context, MapInsideListViewPage.route),
+      drawer: const MenuDrawer(MapInsideListViewPage.route),
       body: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(8),
         child: ListView(
           scrollDirection: Axis.vertical,
           children: [
             SizedBox(
               height: 300,
               child: FlutterMap(
-                options: MapOptions(
-                  center: LatLng(51.5, -0.09),
-                  zoom: 5.0,
-                  plugins: [
-                    ZoomButtonsPlugin(),
-                  ],
+                options: const MapOptions(
+                  initialCenter: LatLng(51.5, -0.09),
+                  initialZoom: 5,
                 ),
-                layers: [
-                  ZoomButtonsPluginOption(
+                children: [
+                  openStreetMapTileLayer,
+                  const FlutterMapZoomButtons(
                     minZoom: 4,
                     maxZoom: 19,
                     mini: true,
                     padding: 10,
                     alignment: Alignment.bottomLeft,
-                  )
-                ],
-                children: <Widget>[
-                  TileLayerWidget(
-                    options: TileLayerOptions(
-                      urlTemplate:
-                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      subdomains: ['a', 'b', 'c'],
-                    ),
                   ),
                 ],
               ),

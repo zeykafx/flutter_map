@@ -1,118 +1,277 @@
-import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:mockito/mockito.dart';
 
-class MockHttpClientResponse extends Mock implements HttpClientResponse {
-  final _stream = readFile();
-
-  @override
-  int get statusCode => HttpStatus.ok;
-
-  @override
-  int get contentLength => File('test/res/map.png').lengthSync();
-
-  @override
-  HttpClientResponseCompressionState get compressionState =>
-      HttpClientResponseCompressionState.notCompressed;
-
-  @override
-  StreamSubscription<List<int>> listen(void Function(List<int> event)? onData,
-      {Function? onError, void Function()? onDone, bool? cancelOnError}) {
-    return _stream.listen(
-      onData,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError,
-    );
-  }
-
-  static Stream<List<int>> readFile() => File('test/res/map.png').openRead();
-}
-
-class MockHttpClientRequest extends Mock implements HttpClientRequest {
-  @override
-  Future<HttpClientResponse> close() => Future.value(MockHttpClientResponse());
-}
-
-class MockClient extends Mock implements HttpClient {
-  @override
-  Future<HttpClientRequest> getUrl(Uri url) {
-    return Future.value(MockHttpClientRequest());
-  }
-}
-
-class MockHttpOverrides extends HttpOverrides {
-  @override
-  HttpClient createHttpClient(SecurityContext? securityContext) => MockClient();
-}
+import 'test_utils/test_app.dart';
 
 void main() {
   testWidgets('flutter_map', (tester) async {
-    HttpOverrides.global = MockHttpOverrides();
-    await tester.pumpWidget(const TestApp());
+    final markers = [
+      const Marker(
+        width: 80,
+        height: 80,
+        point: LatLng(45.5231, -122.6765),
+        child: FlutterLogo(),
+      ),
+      const Marker(
+        width: 80,
+        height: 80,
+        point: LatLng(40, -120), // not visible
+        child: FlutterLogo(),
+      ),
+    ];
+
+    await tester.pumpWidget(TestApp(markers: markers));
     expect(find.byType(FlutterMap), findsOneWidget);
     expect(find.byType(TileLayer), findsOneWidget);
     expect(find.byType(RawImage), findsWidgets);
     expect(find.byType(MarkerLayer), findsWidgets);
     expect(find.byType(FlutterLogo), findsOneWidget);
   });
+
+  testWidgets(
+      'FlutterMap - Bottom ViewInsets (e.g. keyboard) do not trigger rebuilds.',
+      (tester) async {
+    var builds = 0;
+
+    final map = FlutterMap(
+      options: const MapOptions(
+        initialCenter: LatLng(45.5231, -122.6765),
+      ),
+      children: [
+        Builder(
+          builder: (context) {
+            final _ = MapCamera.of(context);
+            builds++;
+            return const SizedBox.shrink();
+          },
+        ),
+      ],
+    );
+
+    Widget wrapMapInApp({required double bottomInset}) {
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: MediaQuery(
+          data: MediaQueryData(
+            viewInsets: EdgeInsets.only(bottom: bottomInset),
+          ),
+          child: Scaffold(
+            resizeToAvoidBottomInset: false,
+            body: map,
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(wrapMapInApp(bottomInset: 0));
+    expect(find.byType(FlutterMap), findsOneWidget);
+
+    // Emulate a keyboard popping up by putting a non-zero bottom ViewInset.
+    await tester.pumpWidget(wrapMapInApp(bottomInset: 100));
+
+    // The map should not have rebuild after the first build.
+    expect(builds, equals(1));
+  });
+
+  testWidgets('gestures work with no tile layer and transparent background.',
+      (tester) async {
+    var taps = 0;
+    late MapCamera camera;
+
+    final map = MaterialApp(
+      home: Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: FlutterMap(
+          options: MapOptions(
+            backgroundColor: Colors.transparent,
+            maxZoom: 9,
+            initialZoom: 10, // Higher than maxZoom.
+            onTap: (_, __) {
+              taps++;
+            },
+          ),
+          children: [
+            Builder(
+              builder: (context) {
+                camera = MapCamera.of(context);
+                return const SizedBox.shrink();
+              },
+            )
+          ],
+        ),
+      ),
+    );
+    await tester.pumpWidget(map);
+    expect(taps, 0);
+
+    // Store the camera before pinch zooming.
+    final cameraBeforePinchZoom = camera;
+
+    // Create two touches.
+    final center = tester.getCenter(find.byType(FlutterMap));
+    final touch1 = await tester.startGesture(center.translate(-10, 0));
+    final touch2 = await tester.startGesture(center.translate(10, 0));
+
+    // Zoom in.
+    await touch1.moveBy(const Offset(-100, 0));
+    await touch2.moveBy(const Offset(100, 0));
+    await tester.pump();
+
+    // Check that the pinch zoom caused the camera to change.
+    expect(camera.zoom, isNot(cameraBeforePinchZoom.center));
+  });
+
+  testWidgets('MapCamera.of only notifies dependencies when camera changes',
+      (tester) async {
+    var buildCount = 0;
+    final Widget builder = Builder(builder: (context) {
+      MapCamera.of(context);
+      buildCount++;
+      return const SizedBox.shrink();
+    });
+
+    await tester.pumpWidget(TestRebuildsApp(child: builder));
+    expect(buildCount, equals(1));
+
+    await tester.tap(find.widgetWithText(TextButton, 'Change flags'));
+    await tester.pumpAndSettle();
+    expect(buildCount, equals(1));
+
+    await tester.tap(find.widgetWithText(TextButton, 'Change MapController'));
+    await tester.pumpAndSettle();
+    expect(buildCount, equals(1));
+
+    await tester.tap(find.widgetWithText(TextButton, 'Change Crs'));
+    await tester.pumpAndSettle();
+    expect(buildCount, equals(2));
+  });
+
+  testWidgets('MapOptions.of only notifies dependencies when options change',
+      (tester) async {
+    var buildCount = 0;
+    final Widget builder = Builder(builder: (context) {
+      MapOptions.of(context);
+      buildCount++;
+      return const SizedBox.shrink();
+    });
+
+    await tester.pumpWidget(TestRebuildsApp(child: builder));
+    expect(buildCount, equals(1));
+
+    await tester.tap(find.widgetWithText(TextButton, 'Change flags'));
+    await tester.pumpAndSettle();
+    expect(buildCount, equals(2));
+
+    await tester.tap(find.widgetWithText(TextButton, 'Change MapController'));
+    await tester.pumpAndSettle();
+    expect(buildCount, equals(2));
+
+    await tester.tap(find.widgetWithText(TextButton, 'Change Crs'));
+    await tester.pumpAndSettle();
+    expect(buildCount, equals(3));
+  });
+
+  testWidgets(
+      'MapController.of only notifies dependencies when controller changes',
+      (tester) async {
+    var buildCount = 0;
+    final Widget builder = Builder(builder: (context) {
+      MapController.of(context);
+      buildCount++;
+      return const SizedBox.shrink();
+    });
+
+    await tester.pumpWidget(TestRebuildsApp(child: builder));
+    expect(buildCount, equals(1));
+
+    await tester.tap(find.widgetWithText(TextButton, 'Change flags'));
+    await tester.pumpAndSettle();
+    expect(buildCount, equals(1));
+
+    await tester.tap(find.widgetWithText(TextButton, 'Change MapController'));
+    await tester.pumpAndSettle();
+    expect(buildCount, equals(2));
+
+    await tester.tap(find.widgetWithText(TextButton, 'Change Crs'));
+    await tester.pumpAndSettle();
+    expect(buildCount, equals(2));
+  });
 }
 
-class TestApp extends StatefulWidget {
-  const TestApp({Key? key}) : super(key: key);
+class TestRebuildsApp extends StatefulWidget {
+  final Widget child;
+
+  const TestRebuildsApp({
+    super.key,
+    required this.child,
+  });
 
   @override
-  State<TestApp> createState() => _TestAppState();
+  State<TestRebuildsApp> createState() => _TestRebuildsAppState();
 }
 
-class _TestAppState extends State<TestApp> {
-  final List<Marker> _markers = <Marker>[
-    Marker(
-      width: 80,
-      height: 80,
-      point: LatLng(45.5231, -122.6765),
-      builder: (ctx) => const FlutterLogo(),
-    ),
-    Marker(
-      width: 80,
-      height: 80,
-      point: LatLng(40, -120), // not visible
-      builder: (ctx) => const FlutterLogo(),
-    ),
-  ];
+class _TestRebuildsAppState extends State<TestRebuildsApp> {
+  MapController _mapController = MapController();
+  Crs _crs = const Epsg3857();
+  int _interactiveFlags = InteractiveFlag.all;
 
   @override
-  void initState() {
-    super.initState();
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        body: Center(
-          child: SizedBox(
-            width: 200,
-            height: 200,
-            child: FlutterMap(
-              options: MapOptions(
-                center: LatLng(45.5231, -122.6765),
-                zoom: 13,
-              ),
-              layers: [
-                TileLayerOptions(
-                    urlTemplate:
-                        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    subdomains: ['a', 'b', 'c']),
-                MarkerLayerOptions(markers: _markers),
-              ],
+        body: FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            crs: _crs,
+            interactionOptions: InteractionOptions(
+              flags: _interactiveFlags,
             ),
           ),
+          children: [
+            widget.child,
+            Column(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _interactiveFlags =
+                          InteractiveFlag.hasDrag(_interactiveFlags)
+                              ? _interactiveFlags & ~InteractiveFlag.drag
+                              : InteractiveFlag.all;
+                    });
+                  },
+                  child: const Text('Change flags'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _crs = _crs == const Epsg3857()
+                          ? const Epsg4326()
+                          : const Epsg3857();
+                    });
+                  },
+                  child: const Text('Change Crs'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    _mapController.dispose();
+                    setState(() {
+                      _mapController = MapController();
+                    });
+                  },
+                  child: const Text('Change MapController'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
